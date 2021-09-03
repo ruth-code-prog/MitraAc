@@ -1,6 +1,7 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {StyleSheet, Text, View, ScrollView} from 'react-native';
-import {Header, ChatItem, InputChat} from '../../components';
+import React, { useState, useEffect, useRef } from "react";
+import { StyleSheet, Text, View, ScrollView } from "react-native";
+import ImagePicker from "react-native-image-picker";
+import { Header, ChatItem, InputChat } from "../../components";
 import {
   fonts,
   colors,
@@ -8,16 +9,16 @@ import {
   showError,
   getChatTime,
   setDateChat,
-} from '../../utils';
-import {Fire} from '../../config';
+} from "../../utils";
+import { Fire } from "../../config";
 
-const Chatting = ({navigation, route}) => {
+const Chatting = ({ navigation, route }) => {
   const scrollRef = useRef(null);
-  const dataOurstaff = route.params;
-  const [chatContent, setChatContent] = useState('');
+  const dataOurstaff = route.params || {};
+  const [chatContent, setChatContent] = useState("");
   const [user, setUser] = useState({});
   const [chatData, setChatData] = useState([]);
-
+  const [photo, setPhoto] = useState(null);
 
   useEffect(() => {
     if (user.uid !== undefined) {
@@ -26,20 +27,20 @@ const Chatting = ({navigation, route}) => {
       const urlFirebase = `chatting/${chatID}/allChat/`;
       Fire.database()
         .ref(urlFirebase)
-        .on('value', snapshot => {
+        .on("value", (snapshot) => {
           if (snapshot.val()) {
             const dataSnapshot = snapshot.val();
             const allDataChat = [];
-            Object.keys(dataSnapshot).map(key => {
+            Object.keys(dataSnapshot).map((key) => {
               const dataChat = dataSnapshot[key];
               const newDataChat = [];
               let valueDataChat = Object.values(dataChat);
-              valueDataChat = valueDataChat.sort((a,b) => {
-                return b.chatDate - a.chatDate
-              })
+              valueDataChat = valueDataChat.sort((a, b) => {
+                return b.chatDate - a.chatDate;
+              });
 
-              valueDataChat.reverse()
-              Object.keys(dataChat).map(itemChat => {
+              valueDataChat.reverse();
+              Object.keys(dataChat).map((itemChat) => {
                 newDataChat.push({
                   id: itemChat,
                   data: dataChat[itemChat],
@@ -55,48 +56,52 @@ const Chatting = ({navigation, route}) => {
           }
         });
     }
-    
   }, [user]);
 
   useEffect(() => {
     getDataUserFromLocal();
-  },[])
+  }, []);
+
+  useEffect(() => {
+    if (photo) {
+      chatSend("photo");
+    }
+  }, [photo]);
+
   const getDataUserFromLocal = () => {
-    getData('user').then(res => {
+    getData("user").then((res) => {
       setUser(res);
     });
   };
 
   const sendNotification = (message, title) => {
-    let dataUser = user
+    let dataUser = user;
     delete dataUser.photo;
     let currentStaff = {
-      data : dataUser
-    }
+      data: dataUser,
+    };
     var datas = JSON.stringify({
-      "registration_ids": [
-        dataOurstaff.data.token
-      ],
-      "notification": {
-        "body": message,
-        "title": title,
-        "priority": "high"
+      registration_ids: [dataOurstaff.data.token],
+      notification: {
+        body: message,
+        title: title,
+        priority: "high",
       },
-      "data": {
-        "body": message,
-        "title": title,
-        "message": message,
-        "priority": "high",
-        "moreData":currentStaff
+      data: {
+        body: message,
+        title: title,
+        message: message,
+        priority: "high",
+        moreData: currentStaff,
       },
-      "soundname": "default",
-      "priority": "high"
+      soundname: "default",
+      priority: "high",
     });
 
     var xhr = new XMLHttpRequest();
     xhr.withCredentials = true;
 
-    xhr.addEventListener("readystatechange", function () {
+    xhr.addEventListener("readystatechange", function() {
       if (this.readyState === 4) {
         console.log(this.responseText);
       }
@@ -106,31 +111,38 @@ const Chatting = ({navigation, route}) => {
       if (xhr.readyState !== 4) {
         return;
       }
-    
+
       if (xhr.status === 200) {
-        console.log('success', xhr.responseText);
+        console.log("success", xhr.responseText);
       } else {
-        console.warn('error');
+        console.warn("error");
       }
     };
 
     xhr.open("POST", "https://fcm.googleapis.com/fcm/send");
     xhr.setRequestHeader("content-type", "application/json");
-    xhr.setRequestHeader("authorization", "key=AAAAmCard3M:APA91bGCNpwLLKIVj-I6rC9KBbPwHuKlYwEDB1Mvf0bs3D15IpKnk32bSLWXwQcd2u8e_k0tepl9NbyjmURYwNfrUdggbdi3nX1bJz-hOpQ20XdUwsKQbROZZOi9txHEdANq_tJJg-uJ");
+    xhr.setRequestHeader(
+      "authorization",
+      "key=AAAAmCard3M:APA91bGCNpwLLKIVj-I6rC9KBbPwHuKlYwEDB1Mvf0bs3D15IpKnk32bSLWXwQcd2u8e_k0tepl9NbyjmURYwNfrUdggbdi3nX1bJz-hOpQ20XdUwsKQbROZZOi9txHEdANq_tJJg-uJ"
+    );
     xhr.setRequestHeader("cache-control", "no-cache");
-    xhr.setRequestHeader("postman-token", "5ba4747d-01b4-80e6-1ce5-e43f0c3b4a42");
+    xhr.setRequestHeader(
+      "postman-token",
+      "5ba4747d-01b4-80e6-1ce5-e43f0c3b4a42"
+    );
 
     xhr.send(datas);
-  }
+  };
 
-  const chatSend = () => {
+  const chatSend = (type) => {
     const today = new Date();
 
     const data = {
       sendBy: user.uid,
       chatDate: today.getTime(),
       chatTime: getChatTime(today),
-      chatContent: chatContent,
+      chatContent: type === "photo" ? photo : chatContent,
+      type: type ? type : null,
     };
 
     const chatID = `${dataOurstaff.data.uid}_${user.uid}`;
@@ -139,12 +151,14 @@ const Chatting = ({navigation, route}) => {
     const urlMessageUser = `messages/${user.uid}/${chatID}`;
     const urlMessageOurstaff = `messages/${dataOurstaff.data.uid}/${chatID}`;
     const dataHistoryChatForUser = {
-      lastContentChat: chatContent,
+      lastContentChat: type === "photo" ? photo : chatContent,
+      type: type ? type : null,
       lastChatDate: today.getTime(),
       uidPartner: dataOurstaff.data.uid,
     };
     const dataHistoryChatForOurstaff = {
-      lastContentChat: chatContent,
+      lastContentChat: type === "photo" ? photo : chatContent,
+      type: type ? type : null,
       lastChatDate: today.getTime(),
       uidPartner: user.uid,
     };
@@ -152,7 +166,7 @@ const Chatting = ({navigation, route}) => {
       .ref(urlFirebase)
       .push(data)
       .then(() => {
-        setChatContent('');
+        setChatContent("");
         // set history for user
         Fire.database()
           .ref(urlMessageUser)
@@ -162,31 +176,49 @@ const Chatting = ({navigation, route}) => {
         Fire.database()
           .ref(urlMessageOurstaff)
           .set(dataHistoryChatForOurstaff);
+        setPhoto(null);
       })
-      .catch(err => {
+      .catch((err) => {
         showError(err.message);
+        setPhoto(null);
       });
-      sendNotification(chatContent, "Notifikasi Pesan")
+    sendNotification(chatContent, "Notifikasi Pesan");
   };
+
+  const getImage = () => {
+    ImagePicker.showImagePicker(
+      { quality: 0.5, includeBase64: true, },
+      (response) => {
+        if (response.didCancel || response.error) {
+          showError("oops, sepertinya anda tidak memilih foto nya?");
+        } else {
+          const source = { uri: response.uri };
+          setPhoto(`data:${response?.type};base64, ${response?.data}`);
+        }
+      }
+    );
+  };
+
   return (
     <View style={styles.page}>
       <Header
         type="dark-profile"
         title={dataOurstaff.data.fullName}
         desc={dataOurstaff.data.category}
-        photo={{uri: dataOurstaff.data.photo}}
+        photo={{ uri: dataOurstaff.data.photo }}
         onPress={() => navigation.goBack()}
       />
       <View style={styles.content}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           ref={scrollRef}
-          onContentSizeChange={() => scrollRef.current.scrollToEnd()}>
-          {chatData.map(chat => {
+          onContentSizeChange={() => scrollRef.current.scrollToEnd()}
+        >
+          {chatData.map((chat) => {
             return (
               <View key={chat.id}>
                 <Text style={styles.chatDate}>{chat.id}</Text>
-                {chat.data.map(itemChat => {
+                {chat.data.map((itemChat) => {
                   const isMe = itemChat.sendBy === user.uid;
                   return (
                     <ChatItem
@@ -194,7 +226,8 @@ const Chatting = ({navigation, route}) => {
                       isMe={isMe}
                       text={itemChat.chatContent}
                       date={itemChat.chatTime}
-                      photo={isMe ? null : {uri: dataOurstaff.data.photo}}
+                      type={itemChat?.type}
+                      photo={isMe ? null : { uri: dataOurstaff.data.photo }}
                     />
                   );
                 })}
@@ -205,8 +238,9 @@ const Chatting = ({navigation, route}) => {
       </View>
       <InputChat
         value={chatContent}
-        onChangeText={value => setChatContent(value)}
-        onButtonPress={chatSend}
+        onUploadPress={getImage}
+        onChangeText={(value) => setChatContent(value)}
+        onButtonPress={() => chatSend()}
         targetChat={dataOurstaff}
       />
     </View>
@@ -216,13 +250,13 @@ const Chatting = ({navigation, route}) => {
 export default Chatting;
 
 const styles = StyleSheet.create({
-  page: {backgroundColor: colors.white, flex: 1},
-  content: {flex: 1},
+  page: { backgroundColor: colors.white, flex: 1 },
+  content: { flex: 1 },
   chatDate: {
     fontSize: 11,
     fontFamily: fonts.primary.normal,
     color: colors.text.secondary,
     marginVertical: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
