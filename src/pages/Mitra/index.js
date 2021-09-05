@@ -101,6 +101,7 @@ const Mitra = ({ navigation }) => {
           const filterData = realData?.filter((val) => val?.data?.uid);
           setUserList(filterData);
           setUserListAll(filterData);
+          storeData("userList", filterData);
         }
         setSearchUserLoading(false);
       })
@@ -258,7 +259,7 @@ const Mitra = ({ navigation }) => {
             />
           </View>
           {searchUserLoading ? (
-            <View style={{marginTop: 16}}>
+            <View style={{ marginTop: 16 }}>
               <ActivityIndicator size={32} color={colors.primary} />
             </View>
           ) : (

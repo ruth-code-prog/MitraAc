@@ -18,6 +18,7 @@ const ChattingGroup = ({ navigation, route }) => {
   const [user, setUser] = useState({});
   const [chatData, setChatData] = useState([]);
   const [photo, setPhoto] = useState(null);
+  const [userList, setUserList] = useState([]);
 
   useEffect(() => {
     if (user.uid !== undefined) {
@@ -48,6 +49,11 @@ const ChattingGroup = ({ navigation, route }) => {
               });
             });
             setChatData(allDataChat);
+            getData("userList").then((res) => {
+              if (res) {
+                setUserList(res);
+              }
+            });
           }
         });
     }
@@ -190,6 +196,9 @@ const ChattingGroup = ({ navigation, route }) => {
                 <Text style={styles.chatDate}>{chat.id}</Text>
                 {chat.data.map((itemChat) => {
                   const isMe = itemChat.sendBy === user.uid;
+                  const photoLink = userList?.filter(
+                    (val) => val?.data?.uid === itemChat?.sendBy
+                  );
                   return (
                     <ChatItem
                       fullName={itemChat?.fullName}
@@ -198,7 +207,7 @@ const ChattingGroup = ({ navigation, route }) => {
                       text={itemChat.chatContent}
                       date={itemChat.chatTime}
                       type={itemChat?.type}
-                      photo={isMe ? null : { uri: user?.photo }}
+                      photo={isMe ? null : { uri: photoLink[0]?.data?.photo }}
                     />
                   );
                 })}
