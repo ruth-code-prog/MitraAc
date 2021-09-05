@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Image,
   FlatList,
+  TextInput,
+  ActivityIndicator,
 } from "react-native";
 import {
   CircleStory,
@@ -33,10 +35,12 @@ const Mitra = ({ navigation }) => {
     profession: "",
   });
   const [userList, setUserList] = useState([]);
+  const [userListAll, setUserListAll] = useState([]);
+  const [searchUserValue, setSearchUserValue] = useState("");
+  const [searchUserLoading, setSearchUserLoading] = useState(true);
 
   useEffect(() => {
     Fire.auth().onAuthStateChanged((data) => {
-      console.log("verif -> data", data);
       if (data) {
         getUserSaldo(data.uid);
       }
@@ -96,10 +100,13 @@ const Mitra = ({ navigation }) => {
           });
           const filterData = realData?.filter((val) => val?.data?.uid);
           setUserList(filterData);
+          setUserListAll(filterData);
         }
+        setSearchUserLoading(false);
       })
       .catch((err) => {
         showError(err.message);
+        setSearchUserLoading(false);
       });
   };
 
@@ -136,7 +143,6 @@ const Mitra = ({ navigation }) => {
     getData("user").then((res) => {
       const data = res;
       data.photo = res?.photo?.length > 1 ? { uri: res.photo } : ILNullPhoto;
-      console.log(data);
       setProfile(res);
     });
   };
@@ -145,10 +151,6 @@ const Mitra = ({ navigation }) => {
     Fire.database()
       .ref("ourstaffs/" + uid)
       .on("value", (snapshot) => {
-        console.log(
-          "🚀 ~ file: index.js ~ line 29 ~ useEffect ~ snapshot",
-          snapshot.val()
-        );
         if (snapshot.val()) {
           setUserSaldo(snapshot.val());
         }
@@ -209,6 +211,18 @@ const Mitra = ({ navigation }) => {
   const openWeb = (url) => {
     Linking.openURL("https://" + url);
   };
+
+  const handleFilter = (val) => {
+    setSearchUserLoading(true);
+    let arr = [...userListAll];
+    var searchRegex = new RegExp(val, "i");
+    arr = arr.filter((item) => searchRegex?.test(item?.data?.fullName));
+    setUserList(arr);
+    setTimeout(() => {
+      setSearchUserLoading(false);
+    }, 1500);
+  };
+
   return (
     <View style={styles.page}>
       <View style={styles.content}>
@@ -235,14 +249,30 @@ const Mitra = ({ navigation }) => {
               {CurrencyFormatter(userSaldo !== null ? userSaldo.saldo : 0)}
             </Text>
           </View>
-          <FlatList
-            keyExtractor={(_, index) => index.toString()}
-            data={userList}
-            renderItem={({ item }) => <CircleStory data={item?.data} />}
-            horizontal
-            ItemSeparatorComponent={() => <View style={{ marginRight: 16 }} />}
-            contentContainerStyle={styles.story}
-          />
+          <View>
+            <TextInput
+              onChangeText={(val) => handleFilter(val, "3")}
+              selectTextOnFocus
+              style={styles.searchInput}
+              placeholder="Cari User"
+            />
+          </View>
+          {searchUserLoading ? (
+            <View style={{marginTop: 16}}>
+              <ActivityIndicator size={32} color={colors.primary} />
+            </View>
+          ) : (
+            <FlatList
+              keyExtractor={(_, index) => index.toString()}
+              data={userList}
+              renderItem={({ item }) => <CircleStory data={item?.data} />}
+              horizontal
+              ItemSeparatorComponent={() => (
+                <View style={{ marginRight: 16 }} />
+              )}
+              contentContainerStyle={styles.story}
+            />
+          )}
           <View style={styles.wrapperSection}>
             <Text style={styles.sectionLabel}>Video Info and Trending</Text>
           </View>
@@ -268,7 +298,7 @@ const styles = StyleSheet.create({
   story: {
     paddingHorizontal: 20,
     paddingBottom: 8,
-    paddingTop: 32,
+    paddingTop: 16,
   },
   row: {
     flexDirection: "row",
@@ -316,5 +346,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     paddingTop: 52,
     marginLeft: 150,
+  },
+  searchInput: {
+    borderWidth: 1,
+    marginHorizontal: 20,
+    borderRadius: 5,
+    borderColor: colors.border,
+    marginTop: 20,
   },
 });
