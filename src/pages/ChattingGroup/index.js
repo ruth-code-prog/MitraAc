@@ -12,9 +12,8 @@ import {
 } from "../../utils";
 import { Fire } from "../../config";
 
-const Chatting = ({ navigation, route }) => {
+const ChattingGroup = ({ navigation, route }) => {
   const scrollRef = useRef(null);
-  const dataOurstaff = route.params || {};
   const [chatContent, setChatContent] = useState("");
   const [user, setUser] = useState({});
   const [chatData, setChatData] = useState([]);
@@ -22,30 +21,26 @@ const Chatting = ({ navigation, route }) => {
 
   useEffect(() => {
     if (user.uid !== undefined) {
-      const chatID = `${dataOurstaff?.data?.uid}_${user.uid}`;
-      console.log(chatID);
-      const urlFirebase = `chatting/${chatID}/allChat/`;
+      const urlFirebase = `chatting_group/`;
       Fire.database()
         .ref(urlFirebase)
         .on("value", (snapshot) => {
           if (snapshot.val()) {
             const dataSnapshot = snapshot.val();
+
             let realData = {};
             const allDataChat = [];
-
             Object.entries(dataSnapshot)
               .reverse()
               .map((val) => {
                 realData[val[0]] = val[1];
               });
-
             Object.keys(realData).map((key) => {
               const dataChat = realData[key];
               let valueDataChat = Object.values(dataChat);
               valueDataChat = valueDataChat.sort((a, b) => {
                 return b.chatDate - a.chatDate;
               });
-
               valueDataChat.reverse();
               allDataChat.push({
                 id: key,
@@ -81,7 +76,7 @@ const Chatting = ({ navigation, route }) => {
       data: dataUser,
     };
     var datas = JSON.stringify({
-      registration_ids: [dataOurstaff?.data?.token],
+      registration_ids: [user?.token],
       notification: {
         body: message,
         title: title,
@@ -145,37 +140,13 @@ const Chatting = ({ navigation, route }) => {
       type: type ? type : null,
     };
 
-    const chatID = `${dataOurstaff?.data?.uid}_${user.uid}`;
+    const urlFirebase = `chatting_group/${setDateChat(today)}`;
 
-    const urlFirebase = `chatting/${chatID}/allChat/${setDateChat(today)}`;
-    const urlMessageUser = `messages/${user.uid}/${chatID}`;
-    const urlMessageOurstaff = `messages/${dataOurstaff?.data?.uid}/${chatID}`;
-    const dataHistoryChatForUser = {
-      lastContentChat: type === "photo" ? photo : chatContent,
-      type: type ? type : null,
-      lastChatDate: today.getTime(),
-      uidPartner: dataOurstaff?.data?.uid,
-    };
-    const dataHistoryChatForOurstaff = {
-      lastContentChat: type === "photo" ? photo : chatContent,
-      type: type ? type : null,
-      lastChatDate: today.getTime(),
-      uidPartner: user.uid,
-    };
     Fire.database()
       .ref(urlFirebase)
       .push(data)
       .then(() => {
         setChatContent("");
-        // set history for user
-        Fire.database()
-          .ref(urlMessageUser)
-          .set(dataHistoryChatForUser);
-
-        // set history for dataOurstaff
-        Fire.database()
-          .ref(urlMessageOurstaff)
-          .set(dataHistoryChatForOurstaff);
         setPhoto(null);
       })
       .catch((err) => {
@@ -203,9 +174,8 @@ const Chatting = ({ navigation, route }) => {
     <View style={styles.page}>
       <Header
         type="dark-profile"
-        title={dataOurstaff?.data?.fullName}
-        desc={dataOurstaff?.data?.category}
-        photo={{ uri: dataOurstaff?.data?.photo }}
+        title={"Komunitas Alocare"}
+        desc={"Alocare"}
         onPress={() => navigation.goBack()}
       />
       <View style={styles.content}>
@@ -216,7 +186,7 @@ const Chatting = ({ navigation, route }) => {
         >
           {chatData.map((chat) => {
             return (
-              <View key={chat.id}>
+              <View key={chat}>
                 <Text style={styles.chatDate}>{chat.id}</Text>
                 {chat.data.map((itemChat) => {
                   const isMe = itemChat.sendBy === user.uid;
@@ -227,7 +197,7 @@ const Chatting = ({ navigation, route }) => {
                       text={itemChat.chatContent}
                       date={itemChat.chatTime}
                       type={itemChat?.type}
-                      photo={isMe ? null : { uri: dataOurstaff?.data?.photo }}
+                      photo={isMe ? null : { uri: user?.photo }}
                     />
                   );
                 })}
@@ -241,13 +211,13 @@ const Chatting = ({ navigation, route }) => {
         onUploadPress={getImage}
         onChangeText={(value) => setChatContent(value)}
         onButtonPress={() => chatSend()}
-        targetChat={dataOurstaff}
+        type="group"
       />
     </View>
   );
 };
 
-export default Chatting;
+export default ChattingGroup;
 
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.white, flex: 1 },

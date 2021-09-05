@@ -47,6 +47,16 @@ const Messages = ({ navigation }) => {
     <View style={styles.page}>
       <View style={styles.content}>
         <Text style={styles.title}>Pesan</Text>
+        <Text style={styles.subtitle}>Komunitas Alocare</Text>
+        <View>
+          <List
+            icon="logo"
+            name={"Komunitas Alocare"}
+            desc={"Chat bersama Komunitas Alocare"}
+            onPress={() => navigation.navigate("ChattingGroup")}
+          />
+        </View>
+        <Text style={styles.subtitle}>Personal Chat</Text>
         {historyChat.map((chat) => {
           const dataOurstaff = {
             id: chat?.detailOurstaff?.uid,
@@ -83,6 +93,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
+    fontFamily: fonts.primary[600],
+    color: colors.text.primary,
+    marginTop: 30,
+    marginLeft: 16,
+  },
+  subtitle: {
+    fontSize: 14,
     fontFamily: fonts.primary[600],
     color: colors.text.primary,
     marginTop: 30,

@@ -7,8 +7,15 @@ import {
   Linking,
   TouchableOpacity,
   Image,
+  FlatList,
 } from "react-native";
-import { Gap, HomeProfile, NewsItem, WebItem } from "../../components";
+import {
+  CircleStory,
+  Gap,
+  HomeProfile,
+  NewsItem,
+  WebItem,
+} from "../../components";
 import { Fire } from "../../config";
 import { colors, fonts, showError, getData, storeData } from "../../utils";
 import { ILNullPhoto } from "../../assets";
@@ -25,6 +32,7 @@ const Mitra = ({ navigation }) => {
     fullName: "",
     profession: "",
   });
+  const [userList, setUserList] = useState([]);
 
   useEffect(() => {
     Fire.auth().onAuthStateChanged((data) => {
@@ -38,6 +46,7 @@ const Mitra = ({ navigation }) => {
   useEffect(() => {
     getNews();
     getWeb();
+    getUserList();
     navigation.addListener("focus", () => {
       getUserData();
     });
@@ -66,6 +75,27 @@ const Mitra = ({ navigation }) => {
           const data = res.val();
           const filterData = data.filter((el) => el !== null);
           setWeb(filterData);
+        }
+      })
+      .catch((err) => {
+        showError(err.message);
+      });
+  };
+
+  const getUserList = () => {
+    Fire.database()
+      .ref("users/")
+      .once("value")
+      .then((res) => {
+        if (res.val()) {
+          const data = res.val();
+          const realData = [];
+          // const filterData = Object.entries(data).filter((el) => el !== null);
+          Object.entries(data).map((val) => {
+            realData.push({ data: val[1] });
+          });
+          const filterData = realData?.filter((val) => val?.data?.uid);
+          setUserList(filterData);
         }
       })
       .catch((err) => {
@@ -205,7 +235,14 @@ const Mitra = ({ navigation }) => {
               {CurrencyFormatter(userSaldo !== null ? userSaldo.saldo : 0)}
             </Text>
           </View>
-
+          <FlatList
+            keyExtractor={(_, index) => index.toString()}
+            data={userList}
+            renderItem={({ item }) => <CircleStory data={item?.data} />}
+            horizontal
+            ItemSeparatorComponent={() => <View style={{ marginRight: 16 }} />}
+            contentContainerStyle={styles.story}
+          />
           <View style={styles.wrapperSection}>
             <Text style={styles.sectionLabel}>Video Info and Trending</Text>
           </View>
@@ -228,12 +265,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.secondary,
     flex: 1,
   },
+  story: {
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    paddingTop: 32,
+  },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-    dompet: {
+  dompet: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
