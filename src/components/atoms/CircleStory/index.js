@@ -20,7 +20,7 @@ const CircleStory = ({ data }) => {
         {data?.photo ? (
           <Image
             source={{
-              uri: data?.photo,
+              uri: String(data?.photo) ?? "",
             }}
             style={styles.storyImage}
           />
